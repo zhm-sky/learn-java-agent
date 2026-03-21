@@ -1,12 +1,10 @@
-# learn-java-agent
+# Agent01：一个基于「对话 + 工具调用」的 Agent 是如何实现的
 
-使用 Java 搭建 agent 的学习之路，涉及 tools、skills、上下文管理等。
+> 与项目根目录 **README.md** 中 **「一、Agent 初步搭建的说明」** 内容一致；此处为独立副本，便于单独打开或导出。
 
-## 一、Agent 初步搭建的说明
+## 1. 整体思路：Agent = 多轮对话 + 模型决策 + 工具执行
 
-包 **`com.learn.javaagent.Agent01`** 实现了一个基于「对话 + 工具调用」的 Agent：与 OpenAI **Chat Completions** 兼容的 **`tools` / `tool_calls`** 模式，通过 **`LLMClient`**、**`AgentLoop`**、**`ToolExecutor`** 与 **`BashTool`** 协作完成多轮推理与本地 shell 执行。更完整的独立排版见 [`docs/Agent01.md`](docs/Agent01.md)。
-
-### 1. 整体思路：Agent = 多轮对话 + 模型决策 + 工具执行
+本项目的 Agent 采用与 OpenAI **Chat Completions** 兼容的 **`tools` / `tool_calls`** 模式：
 
 1. 用户输入被追加为一条 `role: user` 消息。
 2. **`LLMClient`** 把 **system 提示词**、历史消息、`tools` 声明等打成一次请求，调用网关的 `/chat/completions`。
@@ -15,7 +13,9 @@
 
 因此，这是一个典型的 **ReAct 式「想—做—再看结果」循环**，只是「想」和「是否继续」由模型通过结构化 `tool_calls` 表达。
 
-### 2. 类依赖关系（谁依赖谁）
+---
+
+## 2. 类依赖关系（谁依赖谁）
 
 ```mermaid
 flowchart TB
@@ -41,9 +41,11 @@ flowchart TB
 - **`LLMClient`** 依赖 **`AgentConfig`**（运行期配置、`tools` JSON、默认参数）。
 - **`AgentConfig`** 与 **`BashTool`** 不依赖包内其他业务类（配置自洽；`BashTool` 为包内工具实现）。
 
-### 3. 各类职责与主要方法
+---
 
-#### 3.1 `Main` — 程序入口与控制台 REPL
+## 3. 各类职责与主要方法
+
+### 3.1 `Main` — 程序入口与控制台 REPL
 
 | 作用 | 说明 |
 |------|------|
@@ -52,7 +54,9 @@ flowchart TB
 
 依赖：**`LLMClient`**、**`AgentLoop`**，以及 Gson 的 `JsonArray` / `JsonObject`。
 
-#### 3.2 `AgentLoop` — 「直到没有 tool_calls」的循环
+---
+
+### 3.2 `AgentLoop` — 「直到没有 tool_calls」的循环
 
 | 作用 | 说明 |
 |------|------|
@@ -61,7 +65,9 @@ flowchart TB
 
 依赖：**`LLMClient`**、**`ToolExecutor`**。
 
-#### 3.3 `AgentConfig` — 配置、工具 Schema、System 提示词
+---
+
+### 3.3 `AgentConfig` — 配置、工具 Schema、System 提示词
 
 | 作用 | 说明 |
 |------|------|
@@ -70,7 +76,9 @@ flowchart TB
 
 被 **`LLMClient`** 使用；**`ToolExecutor`** 通过 `LLMClient.bashToolName()` 间接与 `AgentConfig.TOOL_NAME_BASH` 对齐。
 
-#### 3.4 `LLMClient` — 与网关的一次 Chat Completions 封装
+---
+
+### 3.4 `LLMClient` — 与网关的一次 Chat Completions 封装
 
 | 作用 | 说明 |
 |------|------|
@@ -83,7 +91,9 @@ flowchart TB
 
 依赖：**`AgentConfig`**（及内层 **`RuntimeConfig`**）。
 
-#### 3.5 `ToolExecutor` — 把一条 `tool_calls` 项变成 `role: tool` 消息
+---
+
+### 3.5 `ToolExecutor` — 把一条 `tool_calls` 项变成 `role: tool` 消息
 
 | 作用 | 说明 |
 |------|------|
@@ -96,7 +106,9 @@ flowchart TB
 
 依赖：**`LLMClient`**（仅用于工具名）、**`BashTool`**。
 
-#### 3.6 `BashTool` — 本地执行 shell（包内 `final class`）
+---
+
+### 3.6 `BashTool` — 本地执行 shell（包内 `final class`）
 
 | 作用 | 说明 |
 |------|------|
@@ -106,11 +118,15 @@ flowchart TB
 
 无对其它 Agent01 类的依赖，仅被 **`ToolExecutor`** 调用。
 
-### 4. 数据在系统里如何流动（一句话串起来）
+---
+
+## 4. 数据在系统里如何流动（一句话串起来）
 
 用户一行输入 → **`Main`** 写入 **`history`**（Gson `JsonArray`）→ **`AgentLoop.run`** 循环：**`LLMClient.completeChat`** 带 **system + 全历史 + tools** 请求模型 → 若有 **`tool_calls`**，**`ToolExecutor`** 调 **`BashTool.run`**，结果作为 **tool** 消息追加 → 再请求直到无工具 → **`Main`** 打印最后一条消息的 **`content`**（通常是模型最终自然语言回复）。
 
-### 5. 小结：这个「Agent」在架构上的位置
+---
+
+## 5. 小结：这个「Agent」在架构上的位置
 
 | 层次 | 类 | 角色 |
 |------|-----|------|
@@ -121,27 +137,8 @@ flowchart TB
 
 若你后续要扩展（例如增加文件读写、HTTP 请求等），通常只需：在 **`AgentConfig.tools()`** 里增加 **function** 声明，在 **`ToolExecutor.executeToolCall`** 里按 `name` 分支，并实现对应工具类，**`AgentLoop`** 与 **`Main`** 的结构可以保持不变——这正是这类 **function-calling Agent** 的可扩展点。
 
-### 6. 安全提示
-
-`src/main/resources/agent.properties` 中的 **API_KEY** 等敏感信息请勿提交到公开仓库；生产环境建议使用环境变量或密钥管理服务。
-
 ---
 
-## 构建
+## 6. 安全提示
 
-本项目为 **Maven** 工程，**源码级别 Java 8**（`maven.compiler.source` / `target` 为 `1.8`），运行需 **JDK 8 及以上**。
-
-```bash
-mvn compile
-mvn package
-```
-
-在 IntelliJ IDEA 中导入 **Maven** 项目，将 **Project SDK** 设为 **8**，运行主类 **`com.learn.javaagent.Agent01.Main`**。入口通过 **`LLMClient`** 构造时加载 **`AgentConfig.loadRuntime()`**；模型、提示词、工具等由 **`LLMClient`** 提供给 **`AgentLoop`**。
-
-## 配置
-
-- 默认从 **`src/main/resources/agent.properties`**（UTF-8）读取 **`API_KEY`**、**`MODEL_ID`**、**`API_BASE_URL`** 等键。
-- **同名环境变量会覆盖** 文件中的值（便于部署时注入密钥，勿在仓库中提交含真实密钥的 properties）。
-- **`API_KEY`**、**`MODEL_ID`** 为必填（可在文件或环境中提供）。
-- 未设置 **`API_BASE_URL`** 时，使用内置默认：**`https://dashscope.aliyuncs.com/compatible-mode/v1`**，实际请求为 **OpenAI 兼容** **`…/compatible-mode/v1/chat/completions`**，鉴权为 **`Authorization: Bearer`**。
-- 若只配置到主机（如 `https://dashscope.aliyuncs.com`），代码会补上 **`/compatible-mode/v1/chat/completions`**。
+`src/main/resources/agent.properties` 中的 **API_KEY** 等敏感信息请勿提交到公开仓库；生产环境建议使用环境变量或密钥管理服务。
