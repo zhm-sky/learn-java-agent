@@ -127,6 +127,52 @@ flowchart TB
 
 ---
 
+## 二、支持多工具注入与任务规划
+
+包 **`com.learn.javaagent.Agent02`** 在 Agent01 的 Chat Completions + `tool_calls` 模式上，将工具抽象为统一接口 **`Tool`**，由 **`ToolRegistry`** 同时生成 OpenAI 兼容的 **`tools`** 声明并按名 **`dispatch`** 执行；**`ToolExecutor`** 只负责解析 `tool_calls` 条目并写回 **`role: tool`**，不再硬编码单一 bash 分支。运行时通过 **`TodoManager`** 与 **`todo`** 工具维护多步计划（同一时间仅允许一个 **`in_progress`**），**`AgentLoop`** 在连续多轮未调用 todo 时向工具结果中注入提醒，引导模型更新计划。完整类图、模块说明、设计要点与序列图见 **[`docs/Agent02.md`](docs/Agent02.md)**。
+
+### 1. 整体思路：注册表 + 会话状态 + 计划纠偏
+
+1. **`AgentConfig.tools()`** 与 **`systemPrompt()`** 均基于 **`ToolRegistry`**，保证模型看到的工具列表与本地可执行集合一致。
+2. **`LLMClient`** 仍负责一次请求的 HTTP 与请求体（system、历史、`tools`、`tool_choice`、`max_tokens`）。
+3. **`AgentLoop`** 解析 assistant；若有 **`tool_calls`**，交给 **`ToolExecutor`** → **`ToolRegistry.dispatch`**；**`TodoTool`** 与 **`AgentLoop`** 共享同一会话 **`TodoManager`**。
+4. 标准工具除 **`bash`** 外，还包括 **`read_file`**、**`write_file`**、**`edit_file`**（路径限制在当前工作目录下）以及 **`todo`**。
+
+### 2. 类依赖关系（精简）
+
+```mermaid
+flowchart TB
+    Main2["Main\n(REPL)"]
+    AgentLoop2["AgentLoop\n(循环 + todo 提醒)"]
+    LLMClient2["LLMClient"]
+    AgentConfig2["AgentConfig"]
+    ToolExecutor2["ToolExecutor"]
+    ToolRegistry2["ToolRegistry"]
+    TodoManager2["TodoManager"]
+    ToolsImpl["Tool 实现\nbash / 文件 / todo"]
+
+    Main2 --> AgentLoop2
+    Main2 --> LLMClient2
+    AgentLoop2 --> LLMClient2
+    AgentLoop2 --> ToolExecutor2
+    AgentLoop2 --> TodoManager2
+    ToolExecutor2 --> ToolRegistry2
+    ToolRegistry2 --> ToolsImpl
+    ToolsImpl --> TodoManager2
+    LLMClient2 --> AgentConfig2
+    AgentConfig2 --> ToolRegistry2
+```
+
+### 3. 调用流程（一句话）
+
+用户输入写入 **`history`** → **`AgentLoop.run`** 循环调用 **`LLMClient.completeChat`** → 若有 **`tool_calls`** 则 **`ToolRegistry`** 执行对应 **`Tool`**（含 **`todo`** 更新 **`TodoManager`**），必要时注入计划提醒 → 直到 assistant 不再带工具 → **`Main`** 打印最后一条 **`content`**。
+
+### 4. 运行入口
+
+控制台入口主类为 **`com.learn.javaagent.Agent02.runtime.Main`**（配置方式与上文「配置」章节相同）。
+
+---
+
 ## 构建
 
 本项目为 **Maven** 工程，**源码级别 Java 8**（`maven.compiler.source` / `target` 为 `1.8`），运行需 **JDK 8 及以上**。
@@ -136,7 +182,7 @@ mvn compile
 mvn package
 ```
 
-在 IntelliJ IDEA 中导入 **Maven** 项目，将 **Project SDK** 设为 **8**，运行主类 **`com.learn.javaagent.Agent01.Main`**。入口通过 **`LLMClient`** 构造时加载 **`AgentConfig.loadRuntime()`**；模型、提示词、工具等由 **`LLMClient`** 提供给 **`AgentLoop`**。
+在 IntelliJ IDEA 中导入 **Maven** 项目，将 **Project SDK** 设为 **8**。可运行主类 **`com.learn.javaagent.Agent01.Main`**（单 bash 工具示例）或 **`com.learn.javaagent.Agent02.runtime.Main`**（多工具 + 任务规划，见上文「二、支持多工具注入与任务规划」）。入口通过对应包的 **`LLMClient`** 构造时加载 **`AgentConfig.loadRuntime()`**；模型、提示词、工具等由 **`LLMClient`** 提供给 **`AgentLoop`**。
 
 ## 配置
 
