@@ -8,9 +8,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 /**
- * Agent02 运行日志工具：集中封装控制台输出。
- *
- * <p>输出内容：模型推理、工具调用参数、最终回复、提醒注入等，便于观察 Agent 决策与工具执行。</p>
+ * Agent02 运行日志：模型推理、工具参数、最终回复、提醒注入。
  */
 public final class AgentLogger {
 

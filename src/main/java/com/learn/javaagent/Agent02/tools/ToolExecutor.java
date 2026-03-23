@@ -7,17 +7,16 @@ import com.learn.javaagent.Agent02.runtime.TodoManager;
 import java.util.Objects;
 
 /**
- * 工具调用执行器，将 tool_calls 转为 role: tool 消息。
+ * 工具调用执行器：将 tool_calls 转为 role: tool 消息。
  *
- * <p>与 Agent01 的 ToolExecutor 不同：本类不感知具体工具类型，所有执行委托给 {@link ToolRegistry#dispatch}，
- * 扩展新工具只需在 ToolRegistry 中注册，无需修改本类。</p>
+ * <p>不感知具体工具，全部委托 {@link ToolRegistry#dispatch}。扩展新工具无需修改本类。</p>
  */
 public final class ToolExecutor {
 
     private final ToolRegistry registry;
 
     /**
-     * 使用标准工具集（含新建的 TodoManager）。
+     * 使用 {@link ToolRegistry#withStandardTools()} 内置工具集。
      */
     public ToolExecutor() {
         this(ToolRegistry.withStandardTools());
@@ -61,7 +60,7 @@ public final class ToolExecutor {
         return toolMsg;
     }
 
-    /** 从 JsonObject 安全获取字符串值 */
+    /** 从 JsonObject 安全取字符串 */
     private static String str(JsonObject o, String k) {
         if (!o.has(k) || o.get(k).isJsonNull()) {
             return "";

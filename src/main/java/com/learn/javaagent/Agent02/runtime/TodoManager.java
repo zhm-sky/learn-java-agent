@@ -14,6 +14,8 @@ import java.util.Locale;
  */
 public final class TodoManager {
 
+    private static final String ID_PREFIX = "task-";
+
     /** 任务状态：待办 → 进行中 → 完成 */
     public enum Status {
         PENDING,
@@ -73,7 +75,7 @@ public final class TodoManager {
      */
     public synchronized TodoItem add(String title) {
         String normalized = normalizeTitle(title);
-        TodoItem item = new TodoItem("task-" + nextId++, normalized);
+        TodoItem item = new TodoItem(ID_PREFIX + nextId++, normalized);
         items.add(item);
         return item;
     }

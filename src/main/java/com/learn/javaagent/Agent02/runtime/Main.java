@@ -9,29 +9,20 @@ import java.util.Scanner;
 /**
  * Agent02 程序主入口。
  *
- * <p>在 Agent01 基础上演进为多工具模式：</p>
- * <ul>
- *   <li>初始化 LLMClient、AgentLoop（含 TodoManager 与标准工具集）</li>
- *   <li>控制台 REPL 交互，用户输入后调用 AgentLoop.run 执行推理</li>
- *   <li>退出条件：q / exit / 空行 / EOF</li>
- * </ul>
+ * <p>多工具 Agent：bash、read_file、write_file、edit_file、todo。支持任务规划与智能提醒。</p>
+ *
+ * <p>退出：输入 q / exit / 空行 / EOF。</p>
  */
 public final class Main {
 
-    /** 青色 ANSI 转义码，用于高亮提示符 */
+    /** 青色 ANSI，高亮提示符 */
     private static final String CYN = "\u001B[36m";
-    /** 重置 ANSI 样式 */
+    /** 重置 ANSI */
     private static final String RST = "\u001B[0m";
 
     private Main() {
     }
 
-    /**
-     * 主方法：启动多工具 Agent 交互循环。
-     *
-     * @param args 命令行参数（未使用）
-     * @throws Exception 配置加载或 API 调用异常
-     */
     public static void main(String[] args) throws Exception {
         LLMClient llm = new LLMClient();
         AgentLoop loop = new AgentLoop();
@@ -56,7 +47,6 @@ public final class Main {
                 userMsg.addProperty("role", "user");
                 userMsg.addProperty("content", line);
                 history.add(userMsg);
-
                 loop.run(history, llm);
 
                 JsonObject last = history.get(history.size() - 1).getAsJsonObject();

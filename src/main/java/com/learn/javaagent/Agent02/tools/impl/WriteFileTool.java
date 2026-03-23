@@ -12,7 +12,7 @@ import java.nio.file.StandardOpenOption;
 /**
  * 在工作区内创建或覆盖文件（UTF-8），必要时自动创建父目录。
  *
- * <p>路径限制在工作区根下；content 允许空字符串（清空文件）。</p>
+ * <p>路径限制在工作区根下；content 允许空字符串。</p>
  */
 public final class WriteFileTool implements Tool {
 
@@ -39,9 +39,8 @@ public final class WriteFileTool implements Tool {
         JsonObject o = parseObject(argumentsJson);
         String pathStr = str(o, "path");
         String content = str(o, "content");
-        // content 为 object/array 时需提示模型传字符串
         if (o.has("content") && !o.get("content").isJsonNull() && !o.get("content").isJsonPrimitive()) {
-            return "Error: content must be a string, not object or array";
+            return "Error: content must be a string";
         }
         try {
             Path path = resolveUnderCwd(pathStr);

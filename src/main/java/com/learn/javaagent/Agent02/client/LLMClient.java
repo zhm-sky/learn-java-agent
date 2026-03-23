@@ -15,11 +15,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 /**
- * LLM 访问客户端，封装 Chat Completions API 通信。
+ * LLM 访问客户端，封装 Chat Completions API。
  *
- * <p>与 Agent01 的 LLMClient 职责一致，工具声明来自 {@link AgentConfig#tools()}，
- * 其内容由 {@link com.learn.javaagent.Agent02.tools.ToolRegistry#openAiTools()} 统一生成，
- * 与运行期工具分发保持一致。</p>
+ * <p>tools 由 {@link AgentConfig#tools()} 提供，来源于 {@link com.learn.javaagent.Agent02.tools.ToolRegistry#openAiTools()}。</p>
  */
 public final class LLMClient {
 
@@ -30,50 +28,49 @@ public final class LLMClient {
     private final AgentConfig.RuntimeConfig runtime;
 
     /**
-     * 从 agent.properties 或环境变量加载配置。
+     * 加载 {@link AgentConfig} 并绑定为本次进程内的 LLM 会话配置。
      *
-     * @throws IOException            配置文件读取失败
-     * @throws IllegalStateException 缺少 API_KEY 或 MODEL_ID
+     * @throws IOException              读取配置文件失败
+     * @throws IllegalStateException 缺少必填项（如 {@link AgentConfig#KEY_API_KEY}）
      */
     public LLMClient() throws IOException {
         this(AgentConfig.loadRuntime());
     }
 
     /**
-     * 使用已有配置构造（便于测试）。
-     *
-     * @param runtime 运行期配置，不能为 null
+     * 使用已解析的配置构造（便于测试或外部预先 {@link AgentConfig#load()} 再 {@link AgentConfig#apiBaseUrl} 等场景）。
      */
     public LLMClient(AgentConfig.RuntimeConfig runtime) {
         this.runtime = Objects.requireNonNull(runtime, "runtime");
     }
 
     /**
-     * 发送 Chat Completions 请求：system + 历史 + tools + tool_choice + max_tokens。
+     * 组装 system 与多轮 user/assistant/tool 消息，并附带 model、tools、tool_choice、max_tokens，发送 Chat Completions。
      *
-     * @param conversationMessages 多轮对话（不含 system）
-     * @return 服务端 JSON 响应字符串
+     * @param conversationMessages 不含 system 的消息序列（与 OpenAI 多轮约定一致）
+     * @return 服务端响应 JSON 字符串
      */
     public String completeChat(JsonArray conversationMessages) throws IOException {
-        JsonArray messages = new JsonArray();
+        JsonArray req = new JsonArray();
         JsonObject sys = new JsonObject();
         sys.addProperty("role", "system");
         sys.addProperty("content", runtime.getSystemPrompt());
-        messages.add(sys);
+        req.add(sys);
         for (JsonElement e : conversationMessages) {
-            messages.add(e);
+            req.add(e);
         }
-
         JsonObject body = new JsonObject();
         body.addProperty("model", runtime.getModelId());
-        body.add("messages", messages);
+        body.add("messages", req);
         body.add("tools", AgentConfig.tools());
         body.addProperty("tool_choice", AgentConfig.DEFAULT_TOOL_CHOICE);
         body.addProperty("max_tokens", AgentConfig.DEFAULT_MAX_TOKENS);
-
         return postChatCompletions(body);
     }
 
+    /**
+     * 使用已组装的请求体发送 Chat Completions（字段组装见 {@link #completeChat(JsonArray)}）。
+     */
     private String postChatCompletions(JsonObject requestBody) throws IOException {
         return postJson(runtime.getApiBaseUrl(), runtime.getApiKey(), GSON.toJson(requestBody));
     }

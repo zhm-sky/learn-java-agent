@@ -8,19 +8,16 @@ import java.util.Locale;
 import java.util.Objects;
 
 /**
- * 任务计划工具：add/update/start/complete/set_status/list。
+ * 任务计划工具：add / update / start / complete / set_status / list。
  *
- * <p>与 {@link TodoManager} 绑定，支持多步任务的创建、状态流转与快照查看。
- * 会话级：每个 AgentLoop 一个 TodoManager，保证多轮对话中计划状态一致。</p>
+ * <p>绑定会话级 TodoManager，保证多轮对话中计划状态一致。</p>
  */
 public final class TodoTool implements Tool {
 
     private final TodoManager todoManager;
 
     /**
-     * 绑定会话级 TodoManager。
-     *
-     * @param todoManager 不能为 null，通常由 AgentLoop 创建
+     * @param todoManager 会话级计划管理器，由 AgentLoop 创建并注入
      */
     public TodoTool(TodoManager todoManager) {
         this.todoManager = Objects.requireNonNull(todoManager, "todoManager");
@@ -51,6 +48,7 @@ public final class TodoTool implements Tool {
         JsonObject o = parseObject(argumentsJson);
         String action = str(o, "action").trim().toLowerCase(Locale.ROOT);
         try {
+            // 根据 action 分发到 TodoManager 对应方法
             switch (action) {
                 case "add":
                     return ok("added", todoManager.add(str(o, "title")).getId());

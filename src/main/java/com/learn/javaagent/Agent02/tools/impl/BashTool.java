@@ -10,9 +10,7 @@ import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Bash 命令执行工具，与 Agent01 的 BashTool 逻辑一致。
- *
- * <p>安全措施：黑名单拦截、120s 超时、输出 50K 字符截断、跨平台 shell。</p>
+ * Bash 命令执行工具：黑名单拦截、超时、输出截断、跨平台。
  */
 public final class BashTool implements Tool {
 

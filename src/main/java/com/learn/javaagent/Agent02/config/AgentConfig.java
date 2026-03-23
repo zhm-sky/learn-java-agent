@@ -13,13 +13,9 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * Agent02 配置中心。
+ * Agent02 配置中心：API 密钥、模型、网关、system 提示词、tools 声明。
  *
- * <p>与 Agent01 类似，增加：</p>
- * <ul>
- *   <li>{@link #tools()} 由 {@link ToolRegistry#openAiTools()} 单一来源生成，保证 API 声明与运行期分发一致</li>
- *   <li>System 提示词包含工具名列表及 todo 使用指引</li>
- * </ul>
+ * <p>tools() 由 ToolRegistry.openAiTools() 提供，与运行期分发一致。</p>
  */
 public final class AgentConfig {
 
@@ -98,10 +94,10 @@ public final class AgentConfig {
     }
 
     /**
-     * 从配置 Map 解析 API 根地址，空则用默认值。
+     * 解析后的网关根地址（未配置时使用 {@link #DEFAULT_API_BASE_URL}）。
      */
-    public static String apiBaseUrl(Map<String, String> config) {
-        String u = config.get(KEY_API_BASE_URL);
+    public static String apiBaseUrl(Map<String, String> c) {
+        String u = c.get(KEY_API_BASE_URL);
         return (u == null || u.trim().isEmpty()) ? DEFAULT_API_BASE_URL : u.trim();
     }
 
