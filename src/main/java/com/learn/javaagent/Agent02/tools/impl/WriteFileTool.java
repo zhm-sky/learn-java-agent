@@ -10,9 +10,9 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
 /**
- * 在工作区内创建或覆盖文件（UTF-8），必要时创建父目录。
+ * 在工作区内创建或覆盖文件（UTF-8），必要时自动创建父目录。
  *
- * @author 298751
+ * <p>路径限制在工作区根下；content 允许空字符串。</p>
  */
 public final class WriteFileTool implements Tool {
 

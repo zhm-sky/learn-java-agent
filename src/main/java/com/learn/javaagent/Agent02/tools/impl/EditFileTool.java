@@ -10,9 +10,9 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
 /**
- * 对文本文件做一次精确替换：将首次出现的 {@code old_string} 替换为 {@code new_string}。
+ * 精确替换：将文件中首次出现的 old_string 替换为 new_string。
  *
- * @author 298751
+ * <p>约束：old_string 须唯一匹配；new_string 可为空（删除）；路径限制在工作区。</p>
  */
 public final class EditFileTool implements Tool {
 

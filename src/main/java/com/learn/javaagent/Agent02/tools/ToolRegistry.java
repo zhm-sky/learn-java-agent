@@ -16,12 +16,15 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * 工具注册中心：维护标准工具列表、名称映射、OpenAI tools 声明与分发能力。
+ * 工具注册中心：维护工具列表、OpenAI 声明、按名分发。
  *
- * @author 298751
+ * <p>声明与执行同源：openAiTools() 与 dispatch() 使用同一套工具定义。</p>
+ *
+ * <p>TodoTool 双实例：STANDARD_DECLARATIONS 中仅用于 Schema；运行期由 withStandardTools 注入会话级 TodoManager。</p>
  */
 public final class ToolRegistry {
 
+    /** 标准工具列表，用于生成 openAiTools 与 toolNames；TodoTool 此处仅作 Schema */
     private static final List<Tool> STANDARD_DECLARATIONS = Collections.unmodifiableList(Arrays.asList(
             new BashTool(),
             new ReadFileTool(),

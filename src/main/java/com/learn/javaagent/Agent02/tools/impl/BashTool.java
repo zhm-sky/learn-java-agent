@@ -10,13 +10,13 @@ import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 在本机工作目录执行 shell 命令并返回合并后的标准输出（含简单安全拦截与超时）。
- *
- * @author 298751
+ * Bash 命令执行工具：黑名单拦截、超时、输出截断、跨平台。
  */
 public final class BashTool implements Tool {
 
     private static final String[] BLOCKED = {"rm -rf /", "sudo", "shutdown", "reboot", "> /dev/"};
+    private static final int TIMEOUT_SECONDS = 120;
+    private static final int MAX_OUTPUT_LENGTH = 50_000;
     private static final String YEL = "\u001B[33m";
     private static final String RST = "\u001B[0m";
 
@@ -59,15 +59,15 @@ public final class BashTool implements Tool {
         pb.redirectErrorStream(true);
         try {
             Process p = pb.start();
-            if (!p.waitFor(120, TimeUnit.SECONDS)) {
+            if (!p.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                 p.destroyForcibly();
-                return "Error: Timeout (120s)";
+                return "Error: Timeout (" + TIMEOUT_SECONDS + "s)";
             }
             String out = readAll(p.getInputStream()).trim();
             if (out.isEmpty()) {
                 return "(no output)";
             }
-            return out.length() > 50_000 ? out.substring(0, 50_000) : out;
+            return out.length() > MAX_OUTPUT_LENGTH ? out.substring(0, MAX_OUTPUT_LENGTH) : out;
         } catch (Exception e) {
             return "Error: " + e.getMessage();
         }

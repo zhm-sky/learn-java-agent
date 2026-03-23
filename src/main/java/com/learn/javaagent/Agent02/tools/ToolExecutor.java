@@ -7,12 +7,9 @@ import com.learn.javaagent.Agent02.runtime.TodoManager;
 import java.util.Objects;
 
 /**
- * 根据模型返回的 {@code tool_calls} 单条记录执行对应工具，并生成 OpenAI 兼容的 {@code role: tool} 消息正文。
- * <p>
- * 执行由 {@link ToolRegistry} 完成；本类不感知具体工具类型（无 bash 等分支）。
- * </p>
+ * 工具调用执行器：将 tool_calls 转为 role: tool 消息。
  *
- * @author 298751
+ * <p>不感知具体工具，全部委托 {@link ToolRegistry#dispatch}。扩展新工具无需修改本类。</p>
  */
 public final class ToolExecutor {
 
@@ -54,15 +51,16 @@ public final class ToolExecutor {
         String name = str(fn, "name");
         String args = str(fn, "arguments");
 
-        JsonObject tool = new JsonObject();
-        tool.addProperty("role", "tool");
-        tool.addProperty("tool_call_id", id);
+        JsonObject toolMsg = new JsonObject();
+        toolMsg.addProperty("role", "tool");
+        toolMsg.addProperty("tool_call_id", id);
 
-        String out = registry.dispatch(name, args);
-        tool.addProperty("content", out);
-        return tool;
+        String content = registry.dispatch(name, args);
+        toolMsg.addProperty("content", content);
+        return toolMsg;
     }
 
+    /** 从 JsonObject 安全取字符串 */
     private static String str(JsonObject o, String k) {
         if (!o.has(k) || o.get(k).isJsonNull()) {
             return "";

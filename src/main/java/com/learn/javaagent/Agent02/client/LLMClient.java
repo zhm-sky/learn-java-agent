@@ -5,25 +5,19 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.learn.javaagent.Agent02.config.AgentConfig;
-import com.learn.javaagent.Agent02.runtime.AgentLoop;
-import com.learn.javaagent.Agent02.tools.ToolExecutor;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 /**
- * LLM 访问客户端：构造时通过 {@link AgentConfig#loadRuntime()} 加载运行期配置，
- * 封装 Chat Completions 的 URL、鉴权、请求体（system、model、tools 等）及发送；
- * {@link AgentLoop} 只需传入多轮消息并调用 {@link #completeChat(JsonArray)}；工具分发由 {@link ToolExecutor}
- * 与 {@link com.learn.javaagent.Agent02.tools.ToolRegistry} 完成。
+ * LLM 访问客户端，封装 Chat Completions API。
  *
- * @author 298751
+ * <p>tools 由 {@link AgentConfig#tools()} 提供，来源于 {@link com.learn.javaagent.Agent02.tools.ToolRegistry#openAiTools()}。</p>
  */
 public final class LLMClient {
 
@@ -81,8 +75,9 @@ public final class LLMClient {
         return postJson(runtime.getApiBaseUrl(), runtime.getApiKey(), GSON.toJson(requestBody));
     }
 
-    private static String postJson(String fullUrl, String bearerToken, String jsonBody) throws IOException {
-        HttpURLConnection conn = (HttpURLConnection) new URL(fullUrl + "/chat/completions").openConnection();
+    private static String postJson(String baseUrl, String bearerToken, String jsonBody) throws IOException {
+        String url = baseUrl.endsWith("/") ? baseUrl + "chat/completions" : baseUrl + "/chat/completions";
+        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
         conn.setRequestMethod("POST");
         conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
         conn.setRequestProperty("Authorization", "Bearer " + bearerToken);
@@ -90,14 +85,8 @@ public final class LLMClient {
         conn.setReadTimeout(READ_TIMEOUT_MS);
         conn.setDoOutput(true);
 
-        OutputStream os = null;
-        try {
-            os = conn.getOutputStream();
+        try (java.io.OutputStream os = conn.getOutputStream()) {
             os.write(jsonBody.getBytes(StandardCharsets.UTF_8));
-        } finally {
-            if (os != null) {
-                os.close();
-            }
         }
 
         int code = conn.getResponseCode();

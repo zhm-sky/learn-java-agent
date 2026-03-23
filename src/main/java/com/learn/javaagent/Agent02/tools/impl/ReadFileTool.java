@@ -10,11 +10,11 @@ import java.nio.file.Path;
 /**
  * 读取工作区内文件的 UTF-8 文本内容。
  *
- * @author 298751
+ * <p>路径通过 resolveUnderCwd 限制在工作区根下；超出 {@value #MAX_CHARS} 字符时截断。</p>
  */
 public final class ReadFileTool implements Tool {
 
-    /** 与 {@link BashTool} 类似的输出上限，避免超大文件撑爆上下文 */
+    /** 输出上限，避免超大文件撑爆上下文 */
     private static final int MAX_CHARS = 50_000;
 
     @Override

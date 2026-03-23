@@ -12,17 +12,20 @@ import java.io.IOException;
 import java.util.Objects;
 
 /**
- * Chat Completions + tool_calls 循环：通过 {@link LLMClient} 请求模型；
- * 若有工具调用则委托 {@link ToolExecutor} 执行并写回 tool 消息，并维护 todo 计划提醒。
+ * Agent02 核心循环：模型请求 + 工具调用 + Nag 提醒。
  *
- * @author 298751
+ * <p>流程：请求 LLM → 解析 assistant → 若有 tool_calls 则执行并追加 tool 消息 → 循环直至无工具调用。</p>
+ *
+ * <p>Nag 机制：连续 {@value #TODO_NAG_THRESHOLD} 轮未调用 todo 时，将提醒注入第一条 tool 消息。</p>
  */
 public final class AgentLoop {
 
+    /** 连续多少轮未调用 todo 时触发提醒 */
     private static final int TODO_NAG_THRESHOLD = 3;
 
     private final ToolExecutor tools;
     private final TodoManager todoManager;
+    /** 距上次调用 todo 的轮次数 */
     private int roundsSinceTodo;
 
     /**
@@ -55,7 +58,7 @@ public final class AgentLoop {
                 throw new IllegalStateException("API error: " + root.get("error"));
             }
             JsonArray choices = root.getAsJsonArray("choices");
-            if (choices == null || choices.size() == 0) {
+            if (choices == null || choices.isEmpty()) {
                 throw new IllegalStateException("Missing choices");
             }
 
@@ -68,19 +71,18 @@ public final class AgentLoop {
                 return;
             }
 
+            // 更新 todo 调用计数：本轮调用了则重置，否则 +1
             JsonArray toolCalls = assistant.getAsJsonArray("tool_calls");
             boolean calledTodo = containsTodoCall(toolCalls);
-            if (calledTodo) {
-                roundsSinceTodo = 0;
-            } else {
-                roundsSinceTodo++;
-            }
+            roundsSinceTodo = calledTodo ? 0 : roundsSinceTodo + 1;
 
+            // 若达到阈值则生成 Nag 提醒文案
             String nagReminder = shouldInjectNag(calledTodo) ? buildNagReminder() : "";
             if (!nagReminder.isEmpty()) {
                 AgentLogger.logReminderContent(nagReminder);
             }
 
+            // 执行每个 tool_call，若有 Nag 则附加到第一条 tool 消息
             boolean nagInjected = false;
             for (JsonElement tc : toolCalls) {
                 JsonObject toolCall = tc.getAsJsonObject();
@@ -156,8 +158,10 @@ public final class AgentLoop {
     }
 
     private static boolean hasToolCalls(JsonObject assistant) {
-        return assistant.has("tool_calls")
-                && !assistant.get("tool_calls").isJsonNull()
-                && assistant.getAsJsonArray("tool_calls").size() > 0;
+        if (!assistant.has("tool_calls") || assistant.get("tool_calls").isJsonNull()) {
+            return false;
+        }
+        JsonArray arr = assistant.getAsJsonArray("tool_calls");
+        return arr != null && !arr.isEmpty();
     }
 }

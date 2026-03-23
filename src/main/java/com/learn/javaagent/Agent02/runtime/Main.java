@@ -7,25 +7,27 @@ import com.learn.javaagent.Agent02.client.LLMClient;
 import java.util.Scanner;
 
 /**
- * 程序入口：初始化 {@link LLMClient}，控制台 REPL 中调用 {@link AgentLoop#run}。
+ * Agent02 程序主入口。
  *
- * @author 298751
+ * <p>多工具 Agent：bash、read_file、write_file、edit_file、todo。支持任务规划与智能提醒。</p>
+ *
+ * <p>退出：输入 q / exit / 空行 / EOF。</p>
  */
 public final class Main {
 
+    /** 青色 ANSI，高亮提示符 */
     private static final String CYN = "\u001B[36m";
+    /** 重置 ANSI */
     private static final String RST = "\u001B[0m";
 
     private Main() {
     }
 
-    /**
-     * 交互循环直至 q / exit / 空行 / EOF。
-     */
     public static void main(String[] args) throws Exception {
         LLMClient llm = new LLMClient();
         AgentLoop loop = new AgentLoop();
         JsonArray history = new JsonArray();
+
         try (Scanner in = new Scanner(System.in, "UTF-8")) {
             while (true) {
                 System.out.print(CYN + "用户输入 >> " + RST);
@@ -41,10 +43,10 @@ public final class Main {
                     break;
                 }
 
-                JsonObject u = new JsonObject();
-                u.addProperty("role", "user");
-                u.addProperty("content", line);
-                history.add(u);
+                JsonObject userMsg = new JsonObject();
+                userMsg.addProperty("role", "user");
+                userMsg.addProperty("content", line);
+                history.add(userMsg);
                 loop.run(history, llm);
 
                 JsonObject last = history.get(history.size() - 1).getAsJsonObject();

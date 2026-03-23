@@ -13,12 +13,9 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * 集中管理：配置键、默认值、classpath {@code agent.properties}、环境变量、系统提示词、工具声明及请求参数。
- * <p>
- * {@link #tools()} 由 {@link ToolRegistry#openAiTools()} 单一来源生成，与工具分发注册中心一致。
- * </p>
+ * Agent02 配置中心：API 密钥、模型、网关、system 提示词、tools 声明。
  *
- * @author 298751
+ * <p>tools() 由 ToolRegistry.openAiTools() 提供，与运行期分发一致。</p>
  */
 public final class AgentConfig {
 
