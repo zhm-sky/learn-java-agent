@@ -13,12 +13,13 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * 集中管理：配置键、默认值、classpath {@code agent.properties}、环境变量、系统提示词、工具声明及请求参数。
- * <p>
- * {@link #tools()} 由 {@link ToolRegistry#openAiTools()} 单一来源生成，与工具分发注册中心一致。
- * </p>
+ * Agent02 配置中心。
  *
- * @author 298751
+ * <p>与 Agent01 类似，增加：</p>
+ * <ul>
+ *   <li>{@link #tools()} 由 {@link ToolRegistry#openAiTools()} 单一来源生成，保证 API 声明与运行期分发一致</li>
+ *   <li>System 提示词包含工具名列表及 todo 使用指引</li>
+ * </ul>
  */
 public final class AgentConfig {
 
@@ -97,10 +98,10 @@ public final class AgentConfig {
     }
 
     /**
-     * 解析后的网关根地址（未配置时使用 {@link #DEFAULT_API_BASE_URL}）。
+     * 从配置 Map 解析 API 根地址，空则用默认值。
      */
-    public static String apiBaseUrl(Map<String, String> c) {
-        String u = c.get(KEY_API_BASE_URL);
+    public static String apiBaseUrl(Map<String, String> config) {
+        String u = config.get(KEY_API_BASE_URL);
         return (u == null || u.trim().isEmpty()) ? DEFAULT_API_BASE_URL : u.trim();
     }
 

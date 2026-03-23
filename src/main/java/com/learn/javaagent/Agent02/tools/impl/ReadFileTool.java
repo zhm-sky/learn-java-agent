@@ -10,7 +10,7 @@ import java.nio.file.Path;
 /**
  * 读取工作区内文件的 UTF-8 文本内容。
  *
- * @author 298751
+ * <p>路径通过 resolveUnderCwd 限制在工作区根下，禁止路径穿越；输出超过 50K 字符时截断。</p>
  */
 public final class ReadFileTool implements Tool {
 

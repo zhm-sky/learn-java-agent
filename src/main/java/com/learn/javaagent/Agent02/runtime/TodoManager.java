@@ -14,9 +14,7 @@ import java.util.Locale;
  */
 public final class TodoManager {
 
-    /**
-     * 任务状态：按执行顺序从待办到进行中再到完成。
-     */
+    /** 任务状态：待办 → 进行中 → 完成 */
     public enum Status {
         PENDING,
         IN_PROGRESS,

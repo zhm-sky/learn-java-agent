@@ -9,12 +9,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
- * 统一工具契约：每个工具类同时提供名称、参数 schema 与执行逻辑。
- * <p>
- * 新增工具：实现本接口并加入 {@link ToolRegistry} 的标准列表，即可同时参与 API 声明与本地分发。
- * </p>
+ * 工具统一契约：name、description、parametersSchema、execute。
  *
- * @author 298751
+ * <p>扩展新工具：实现本接口并在 {@link ToolRegistry} 中注册，即可同时参与：</p>
+ * <ul>
+ *   <li>OpenAI tools 声明（toOpenAiToolDeclaration）</li>
+ *   <li>运行期分发（ToolRegistry.dispatch）</li>
+ * </ul>
+ *
+ * <p>默认方法提供：objectSchema、stringProperty、parseObject、str、resolveUnderCwd 等常见能力。</p>
  */
 public interface Tool {
 

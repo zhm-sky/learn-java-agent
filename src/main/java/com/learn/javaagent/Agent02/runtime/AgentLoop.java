@@ -12,13 +12,19 @@ import java.io.IOException;
 import java.util.Objects;
 
 /**
- * Chat Completions + tool_calls 循环：通过 {@link LLMClient} 请求模型；
- * 若有工具调用则委托 {@link ToolExecutor} 执行并写回 tool 消息，并维护 todo 计划提醒。
+ * Agent02 核心循环控制器。
  *
- * @author 298751
+ * <p>在 Agent01 基础上增加：</p>
+ * <ul>
+ *   <li>多工具分发（通过 ToolRegistry，不感知具体工具类型）</li>
+ *   <li>Todo 使用计数：连续 N 轮未调用 todo 时注入提醒（nag），引导模型更新任务计划</li>
+ * </ul>
+ *
+ * <p>循环逻辑与 Agent01 一致：请求模型 → 解析 tool_calls → 执行工具 → 追加 tool 消息 → 直至无工具调用。</p>
  */
 public final class AgentLoop {
 
+    /** 连续多少轮未调用 todo 时触发提醒注入 */
     private static final int TODO_NAG_THRESHOLD = 3;
 
     private final ToolExecutor tools;
@@ -55,7 +61,7 @@ public final class AgentLoop {
                 throw new IllegalStateException("API error: " + root.get("error"));
             }
             JsonArray choices = root.getAsJsonArray("choices");
-            if (choices == null || choices.size() == 0) {
+            if (choices == null || choices.isEmpty()) {
                 throw new IllegalStateException("Missing choices");
             }
 
@@ -156,8 +162,10 @@ public final class AgentLoop {
     }
 
     private static boolean hasToolCalls(JsonObject assistant) {
-        return assistant.has("tool_calls")
-                && !assistant.get("tool_calls").isJsonNull()
-                && assistant.getAsJsonArray("tool_calls").size() > 0;
+        if (!assistant.has("tool_calls") || assistant.get("tool_calls").isJsonNull()) {
+            return false;
+        }
+        JsonArray arr = assistant.getAsJsonArray("tool_calls");
+        return arr != null && !arr.isEmpty();
     }
 }

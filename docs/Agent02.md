@@ -2,6 +2,8 @@
 
 包 **`com.learn.javaagent.Agent02`** 在 Agent01「对话 + 单工具（bash）」的基础上，演进为 **可插拔工具契约 + 注册中心分发**，并引入 **`TodoManager` / `todo` 工具** 与 **多轮未调用 todo 时的提醒注入**，形成「模型决策 → 多工具执行 → 计划纠偏」的闭环。
 
+> **详细图解**：参见 [`Agent02-架构与流程说明.md`](Agent02-架构与流程说明.md) 与 [`agent02-diagrams.html`](agent02-diagrams.html)。
+
 ---
 
 ## 1. 目录与模块划分

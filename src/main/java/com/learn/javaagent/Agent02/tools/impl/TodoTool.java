@@ -8,16 +8,19 @@ import java.util.Locale;
 import java.util.Objects;
 
 /**
- * 计划管理工具：用于新增/更新/启动/完成/查看 todo，帮助模型保持多步任务聚焦。
+ * 任务计划工具：add/update/start/complete/set_status/list。
  *
- * @author 298751
+ * <p>与 {@link TodoManager} 绑定，支持多步任务的创建、状态流转与快照查看。
+ * 会话级：每个 AgentLoop 一个 TodoManager，保证多轮对话中计划状态一致。</p>
  */
 public final class TodoTool implements Tool {
 
     private final TodoManager todoManager;
 
     /**
-     * @param todoManager 会话级计划管理器
+     * 绑定会话级 TodoManager。
+     *
+     * @param todoManager 不能为 null，通常由 AgentLoop 创建
      */
     public TodoTool(TodoManager todoManager) {
         this.todoManager = Objects.requireNonNull(todoManager, "todoManager");

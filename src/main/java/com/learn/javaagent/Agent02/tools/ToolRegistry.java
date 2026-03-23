@@ -16,20 +16,26 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * 工具注册中心：维护标准工具列表、名称映射、OpenAI tools 声明与分发能力。
+ * 工具注册中心：维护标准工具列表、名称映射、OpenAI 声明与分发。
  *
- * @author 298751
+ * <p>设计要点：</p>
+ * <ul>
+ *   <li><b>声明与执行同源</b>：openAiTools() 由 STANDARD_DECLARATIONS 构建，与 dispatch() 使用的注册表一致</li>
+ *   <li><b>TodoTool 双实例</b>：STANDARD_DECLARATIONS 中的 TodoTool 仅用于 Schema；运行期由 withStandardTools(todoManager) 注入会话级 TodoManager</li>
+ * </ul>
  */
 public final class ToolRegistry {
 
+    /** 标准工具声明列表，用于生成 openAiTools() 及 toolNames() */
     private static final List<Tool> STANDARD_DECLARATIONS = Collections.unmodifiableList(Arrays.asList(
             new BashTool(),
             new ReadFileTool(),
             new WriteFileTool(),
             new EditFileTool(),
-            new TodoTool(new TodoManager())
+            new TodoTool(new TodoManager())  // 仅用于 Schema，运行期由 withStandardTools 注入
     ));
 
+    /** OpenAI 兼容的 tools 数组，供 AgentConfig 和 API 请求使用 */
     private static final JsonArray OPENAI_TOOLS = buildOpenAiTools(STANDARD_DECLARATIONS);
 
     private final Map<String, Tool> toolsByName;
@@ -61,11 +67,11 @@ public final class ToolRegistry {
     }
 
     /**
-     * 按工具名执行；未注册时返回固定错误文案。
+     * 按工具名分发执行，未注册时返回错误文案。
      *
-     * @param name            工具名
-     * @param argumentsJson   {@code function.arguments}
-     * @return 供 tool 消息使用的 content
+     * @param name           与 function.name 一致
+     * @param argumentsJson  function.arguments 原始 JSON 字符串
+     * @return 写入 role: tool 消息的 content
      */
     public String dispatch(String name, String argumentsJson) {
         Tool tool = toolsByName.get(name);

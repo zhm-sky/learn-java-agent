@@ -8,9 +8,9 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 /**
- * Agent02 运行日志工具：集中封装控制台日志打印与参数格式化逻辑。
+ * Agent02 运行日志工具：集中封装控制台输出。
  *
- * @author 298751
+ * <p>输出内容：模型推理、工具调用参数、最终回复、提醒注入等，便于观察 Agent 决策与工具执行。</p>
  */
 public final class AgentLogger {
 
@@ -62,7 +62,7 @@ public final class AgentLogger {
      * </p>
      */
     public static void logToolCallArguments(JsonArray toolCalls, int decisionRound) {
-        if (toolCalls == null || toolCalls.size() == 0) {
+        if (toolCalls == null || toolCalls.isEmpty()) {
             System.out.println("Tool Call (none)");
             System.out.println("[]");
             return;
