@@ -24,13 +24,21 @@ mvn compile
 
 ## 二、启动方式
 
-### 方式一：Maven 命令（推荐）
+### 方式一：Web 界面（推荐）
+
+```bash
+mvn exec:java -DmainClass="com.learn.javaagent.Agent02.web.WebMain"
+```
+
+启动后浏览器访问 **http://localhost:8080**，使用图形界面聊天。
+
+### 方式二：控制台 REPL
 
 ```bash
 mvn exec:java
 ```
 
-默认运行 Agent02。若需运行 Agent01：
+默认运行 Agent02 控制台版。若需运行 Agent01：
 ```bash
 mvn exec:java -Dexec.mainClass="com.learn.javaagent.Agent01.Main"
 ```
