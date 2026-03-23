@@ -13,13 +13,19 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * 集中管理：配置键、默认值、classpath {@code agent.properties}、环境变量、系统提示词、工具声明及请求参数。
+ * Agent 配置中心。
  *
- * @author 298751
+ * <p>集中管理：</p>
+ * <ul>
+ *   <li>配置键常量（API_KEY、MODEL_ID、API_BASE_URL 等）</li>
+ *   <li>默认值与工具定义（bash）</li>
+ *   <li>从 agent.properties 或环境变量加载配置（环境变量优先）</li>
+ *   <li>System 提示词、RuntimeConfig 封装</li>
+ * </ul>
  */
 public final class AgentConfig {
 
-    /** 配置文件（位于 classpath / {@code src/main/resources}） */
+    /** 配置文件路径，位于 classpath（如 src/main/resources/agent.properties） */
     public static final String CONFIG_RESOURCE = "agent.properties";
 
     public static final String KEY_API_KEY = "API_KEY";
@@ -28,18 +34,20 @@ public final class AgentConfig {
     public static final String KEY_API_AUTH_TOKEN = "API_AUTH_TOKEN";
 
     /**
-     * 未配置 {@link #KEY_API_BASE_URL} 时使用的网关根路径（不含 {@code /chat/completions}）。
+     * 默认 API 根地址（阿里云通义兼容模式）。
+     * 未配置 API_BASE_URL 时使用，不包含 /chat/completions 路径。
      */
     public static final String DEFAULT_API_BASE_URL =
             "https://dashscope.aliyuncs.com/compatible-mode/v1";
 
-    /** Chat Completions：最大生成 token */
+    /** Chat Completions 单次最大生成 token 数 */
     public static final int DEFAULT_MAX_TOKENS = 8000;
-    /** Chat Completions：工具选择策略 */
+    /** 工具选择策略："auto" 表示由模型决定是否调用工具 */
     public static final String DEFAULT_TOOL_CHOICE = "auto";
-    /** 本示例支持的工具名（与 {@link #tools()} 中定义一致） */
+    /** bash 工具名，须与 tools() 中的 function.name 一致 */
     public static final String TOOL_NAME_BASH = "bash";
 
+    /** OpenAI 兼容的 tools 定义：声明 bash 工具及其参数 schema */
     private static final JsonArray TOOLS = JsonParser.parseString(
             "[{\"type\":\"function\",\"function\":{"
                     + "\"name\":\"bash\",\"description\":\"Run a shell command.\","
@@ -51,14 +59,14 @@ public final class AgentConfig {
     }
 
     /**
-     * OpenAI 兼容 {@code tools} 数组（{@code type:function} + {@code parameters}）。
+     * 返回 Chat Completions 请求所需的 tools 数组。
      */
     public static JsonArray tools() {
         return TOOLS;
     }
 
     /**
-     * 默认 system 提示词（含当前工作目录）。
+     * 生成默认 system 提示词，包含当前工作目录信息。
      */
     public static String systemPrompt() {
         String cwd = Paths.get("").toAbsolutePath().normalize().toString();
@@ -66,10 +74,16 @@ public final class AgentConfig {
     }
 
     /**
-     * 从 classpath 与环境变量加载原始键值（环境变量覆盖文件）；并处理 {@code API_BASE_URL} 与 {@code API_AUTH_TOKEN} 互斥。
+     * 加载原始配置：先读 agent.properties，再被环境变量覆盖。
+     *
+     * <p>当配置了 API_BASE_URL（自定义网关）时，会移除 API_AUTH_TOKEN，避免鉴权方式冲突。</p>
+     *
+     * @return 键值对 Map，键为大写配置名
      */
     public static Map<String, String> load() throws IOException {
         Map<String, String> m = new HashMap<>();
+
+        // 从 classpath 读取 agent.properties
         ClassLoader cl = AgentConfig.class.getClassLoader();
         InputStream in = cl != null ? cl.getResourceAsStream(CONFIG_RESOURCE)
                 : ClassLoader.getSystemResourceAsStream(CONFIG_RESOURCE);
@@ -82,7 +96,11 @@ public final class AgentConfig {
                 m.put(name, p.getProperty(name));
             }
         }
+
+        // 环境变量覆盖文件配置
         m.putAll(System.getenv());
+
+        // 使用自定义 API 地址时，移除 API_AUTH_TOKEN（与 API_KEY 互斥）
         String base = m.get(KEY_API_BASE_URL);
         if (base != null && !base.trim().isEmpty()) {
             m.remove(KEY_API_AUTH_TOKEN);
@@ -91,28 +109,31 @@ public final class AgentConfig {
     }
 
     /**
-     * 解析后的网关根地址（未配置时使用 {@link #DEFAULT_API_BASE_URL}）。
+     * 从配置 Map 中解析 API 根地址，空则用默认值。
      */
-    public static String apiBaseUrl(Map<String, String> c) {
-        String u = c.get(KEY_API_BASE_URL);
+    public static String apiBaseUrl(Map<String, String> config) {
+        String u = config.get(KEY_API_BASE_URL);
         return (u == null || u.trim().isEmpty()) ? DEFAULT_API_BASE_URL : u.trim();
     }
 
     /**
-     * 校验必填项并封装为一次运行所需配置。
+     * 加载并校验配置，封装为 RuntimeConfig。
      *
-     * @throws IllegalStateException 缺少 {@link #KEY_API_KEY} 或 {@link #KEY_MODEL_ID}
+     * @return 运行期配置快照
+     * @throws IllegalStateException 缺少 API_KEY 或 MODEL_ID
      */
     public static RuntimeConfig loadRuntime() throws IOException {
         Map<String, String> raw = load();
         String apiKey = raw.get(KEY_API_KEY);
         String modelId = raw.get(KEY_MODEL_ID);
+
         if (apiKey == null || apiKey.trim().isEmpty()) {
             throw new IllegalStateException("Missing " + KEY_API_KEY);
         }
         if (modelId == null || modelId.trim().isEmpty()) {
             throw new IllegalStateException("Missing " + KEY_MODEL_ID);
         }
+
         return new RuntimeConfig(
                 apiKey.trim(),
                 modelId.trim(),
@@ -122,7 +143,7 @@ public final class AgentConfig {
     }
 
     /**
-     * 运行期配置快照（由 {@link #loadRuntime()} 生成）。
+     * 运行期配置快照，由 loadRuntime() 生成，供 LLMClient 使用。
      */
     public static final class RuntimeConfig {
         private final String apiKey;
