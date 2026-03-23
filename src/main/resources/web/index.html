@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent02 - 多工具 AI 助手</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <h1>Agent02</h1>
+      <p>多工具 AI 助手 · bash · read_file · write_file · edit_file · todo</p>
+    </header>
+
+    <main class="chat-container">
+      <div id="messages" class="messages">
+        <div class="welcome" id="welcome">
+          <p>你好，我是 Agent02。</p>
+          <p>我可以执行命令、读写文件、管理任务计划。直接输入你的需求即可。</p>
+          <p class="hint">例如：列出当前目录文件、创建一个 hello.txt、或用 Python 写个贪吃蛇</p>
+        </div>
+      </div>
+
+      <div class="input-area">
+        <textarea id="input" rows="1" placeholder="输入消息..." maxlength="4000"></textarea>
+        <button id="send" type="button" aria-label="发送">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+          </svg>
+        </button>
+      </div>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
